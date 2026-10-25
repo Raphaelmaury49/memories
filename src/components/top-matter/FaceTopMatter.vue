@@ -11,6 +11,7 @@
       <div :class="{ 'rename-hover': isReal }" @click="rename">
         {{ displayName }}
       </div>
+      <div v-if="birthdateText" class="birthdate" @click="editBirthdate">{{ birthdateText }}</div>
     </div>
 
     <div class="right-actions">
@@ -28,6 +29,14 @@
           <NcActionButton :aria-label="t('memories', 'Rename person')" @click="rename" close-after-click>
             {{ t('memories', 'Rename person') }}
             <template #icon> <EditIcon :size="20" /> </template>
+          </NcActionButton>
+          <NcActionButton :aria-label="t('memories', 'Photos with another person')" @click="pickTogether" close-after-click>
+            {{ t('memories', 'Photos with another person') }}
+            <template #icon> <TogetherIcon :size="20" /> </template>
+          </NcActionButton>
+          <NcActionButton :aria-label="t('memories', 'Set birthday')" @click="editBirthdate" close-after-click>
+            {{ birthdate ? t('memories', 'Change birthday') : t('memories', 'Set birthday') }}
+            <template #icon> <CakeIcon :size="20" /> </template>
           </NcActionButton>
           <NcActionButton
             :aria-label="t('memories', 'Merge with different person')"
@@ -55,11 +64,12 @@
     <FaceEditModal ref="editModal" />
     <FaceDeleteModal ref="deleteModal" />
     <FaceMergeModal ref="mergeModal" />
+    <PersonPickModal ref="pickModal" @select="openTogether" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, useTemplateRef } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import NcActions from '@nextcloud/vue/components/NcActions';
@@ -69,6 +79,7 @@ import NcActionCheckbox from '@nextcloud/vue/components/NcActionCheckbox';
 import FaceEditModal from '@components/modal/FaceEditModal.vue';
 import FaceDeleteModal from '@components/modal/FaceDeleteModal.vue';
 import FaceMergeModal from '@components/modal/FaceMergeModal.vue';
+import PersonPickModal from '@components/modal/PersonPickModal.vue';
 
 import { useRouteIs } from '@services/route-is';
 import { routes } from '@services/router';
@@ -76,12 +87,17 @@ import { config, setConfig } from '@services/user-config';
 import * as utils from '@services/utils/common';
 import { constants } from '@services/constants';
 import { t } from '@services/l10n';
+import * as people from '@services/people';
 
 import BackIcon from 'vue-material-design-icons/ArrowLeft.vue';
 import EditIcon from 'vue-material-design-icons/Pencil.vue';
 import DeleteIcon from 'vue-material-design-icons/Close.vue';
 import MergeIcon from 'vue-material-design-icons/Merge.vue';
 import UnassignedIcon from 'vue-material-design-icons/AccountQuestion.vue';
+import TogetherIcon from 'vue-material-design-icons/AccountMultiple.vue';
+import CakeIcon from 'vue-material-design-icons/CakeVariant.vue';
+
+import type { IFace } from '@typings';
 
 defineOptions({
   name: 'FaceTopMatter',
@@ -93,6 +109,7 @@ const routeIs = useRouteIs();
 const editModal = useTemplateRef<InstanceType<typeof FaceEditModal>>('editModal');
 const deleteModal = useTemplateRef<InstanceType<typeof FaceDeleteModal>>('deleteModal');
 const mergeModal = useTemplateRef<InstanceType<typeof FaceMergeModal>>('mergeModal');
+const pickModal = useTemplateRef<InstanceType<typeof PersonPickModal>>('pickModal');
 
 const name = computed(() => {
   return route.params.name?.toString() || '';
@@ -113,6 +130,31 @@ const displayName = computed(() => {
   return name.value;
 });
 
+const birthdate = ref<string | null>(null);
+
+const backend = computed(() => (routeIs.FaceRecognition ? 'facerecognition' : 'recognize') as people.PeopleBackend);
+
+watch(
+  () => [route.name, route.params.name],
+  async () => {
+    birthdate.value = null;
+    if (!isReal.value) return;
+    try {
+      birthdate.value = (await people.getMeta(backend.value, name.value)).birthdate;
+    } catch {
+      // unknown person or backend disabled
+    }
+  },
+  { immediate: true },
+);
+
+const birthdateText = computed(() => {
+  if (!birthdate.value) return null;
+  const date = utils.getLongDateStr(new Date(`${birthdate.value}T00:00:00Z`));
+  const age = people.ageAt(birthdate.value, new Date());
+  return age === null ? date : t('memories', 'Born {date} · {age} years old', { date, age });
+});
+
 function back() {
   router.go(-1);
 }
@@ -131,8 +173,48 @@ function openUnassigned() {
   });
 }
 
+async function editBirthdate() {
+  if (!isReal.value) return;
+  const input = await utils.prompt({
+    title: t('memories', 'Birthday'),
+    message: t('memories', 'Format YYYY-MM-DD. Leave empty to remove it.'),
+    name: t('memories', 'Birthday'),
+  });
+  if (input === null) return;
+
+  try {
+    birthdate.value = (await people.setBirthdate(backend.value, name.value, input.trim())).birthdate;
+  } catch (e: any) {
+    utils.showError(e?.response?.data?.message ?? t('memories', 'Invalid date'));
+  }
+}
+
+function pickTogether() {
+  pickModal.value?.open({
+    title: t('memories', 'Photos of {name} with …', { name: displayName.value }),
+    backend: backend.value,
+    exclude: [name.value],
+  });
+}
+
+function openTogether(face: IFace) {
+  router.push({
+    name: routes.Together.name,
+    params: { backend: backend.value, ids: [name.value, String(face.name || face.cluster_id)].join(',') },
+  });
+}
+
 function changeShowFaceRect() {
   setConfig('show_face_rect', !config.show_face_rect);
   utils.bus.emit('memories:timeline:hard-refresh', null);
 }
 </script>
+
+<style lang="scss" scoped>
+.birthdate {
+  font-size: 0.8em;
+  font-weight: normal;
+  color: var(--color-text-maxcontrast);
+  cursor: pointer;
+}
+</style>

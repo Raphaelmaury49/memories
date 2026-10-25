@@ -215,6 +215,7 @@ declare module '@typings' {
     hasPassword: boolean;
     expiration: number | null;
     editable: number;
+    upload?: boolean;
   };
 
   export interface ITrashInfo {

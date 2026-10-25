@@ -69,6 +69,12 @@ const emptyViewDescription = computed((): string => {
   if (routeIs.Trash) {
     return t('memories', 'Deleted photos will appear here.');
   }
+  if (routeIs.Locked) {
+    return t('memories', 'Move photos here to hide them from your timeline, search and people.');
+  }
+  if (routeIs.Together) {
+    return t('memories', 'No photos show all of these people together.');
+  }
   if (routeIs.Duplicates) {
     return t('memories', 'No duplicates found. Groups of near-identical photos will appear here.');
   }

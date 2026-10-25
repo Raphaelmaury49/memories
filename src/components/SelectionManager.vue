@@ -49,6 +49,7 @@ import { t, n } from '@services/l10n';
 import { constants } from '@services/constants';
 import initstate from '@services/init-state';
 import * as dav from '@services/dav';
+import * as locked from '@services/locked';
 import * as utils from '@services/utils/common';
 import * as nativex from '@native';
 
@@ -61,6 +62,8 @@ import RestoreIcon from 'vue-material-design-icons/History.vue';
 import EditFileIcon from 'vue-material-design-icons/FileEdit.vue';
 import ArchiveIcon from 'vue-material-design-icons/PackageDown.vue';
 import UnarchiveIcon from 'vue-material-design-icons/PackageUp.vue';
+import LockIcon from 'vue-material-design-icons/Lock.vue';
+import LockOpenIcon from 'vue-material-design-icons/LockOpenVariant.vue';
 import OpenInNewIcon from 'vue-material-design-icons/OpenInNew.vue';
 import CloseIcon from 'vue-material-design-icons/Close.vue';
 import MoveIcon from 'vue-material-design-icons/ImageMove.vue';
@@ -249,6 +252,18 @@ const defaultActions: ISelectionAction[] = [
     icon: markRaw(UnarchiveIcon),
     callback: archiveSelection,
     if: computed(() => routeIs.ArchiveFolder),
+  },
+  {
+    name: t('memories', 'Move to locked folder'),
+    icon: markRaw(LockIcon),
+    callback: moveToLocked,
+    if: computed(() => !routeIs.Locked && !routeIs.Albums && !routeIs.Public && numLocal.value === 0),
+  },
+  {
+    name: t('memories', 'Move out of locked folder'),
+    icon: markRaw(LockOpenIcon),
+    callback: moveOutOfLocked,
+    if: computed(() => routeIs.Locked),
   },
   {
     name: t('memories', 'Edit metadata'),
@@ -1020,6 +1035,27 @@ async function archiveSelection(sel: Selection) {
   for await (let delIds of dav.archiveFilesByIds(sel.photosNoDupFileId(), !routeIs.Archive)) {
     deleteSelectedPhotosById(delIds, sel);
   }
+}
+
+/** Move into or out of the locked folder, removing moved photos from the view */
+async function moveSelectionTo(sel: Selection, destination: string) {
+  if (sel.size >= 50 && !(await utils.dialogs.moveItems(sel.size))) return;
+  for await (const ids of dav.movePhotos(sel.photosNoDupFileId(), destination, false, { route })) {
+    deleteSelectedPhotosById(ids.filter(Boolean), sel);
+  }
+}
+
+/** Hide selected photos in the locked folder (sets up a PIN the first time) */
+async function moveToLocked(sel: Selection) {
+  if (!(await locked.ensureUnlocked())) return;
+  const st = await locked.status();
+  await moveSelectionTo(sel, st.path);
+}
+
+/** Move selected photos back to the first timeline folder */
+async function moveOutOfLocked(sel: Selection) {
+  const target = config.timeline_path.split(';')[0]?.trim() || '/';
+  await moveSelectionTo(sel, target);
 }
 
 /**

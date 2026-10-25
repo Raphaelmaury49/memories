@@ -17,6 +17,9 @@
       <div class="section-title">{{ t('memories', 'People') }}</div>
       <div class="container" v-for="face of people" :key="face.cluster_id">
         <Cluster class="cluster--rounded" :data="face" :counters="false"> </Cluster>
+        <div class="age" v-if="ageOf(face) !== null">
+          {{ n('memories', '{n} year old', '{n} years old', ageOf(face)!, { n: ageOf(face)! }) }}
+        </div>
       </div>
     </div>
 
@@ -100,13 +103,14 @@ import ImageIcon from 'vue-material-design-icons/Image.vue';
 import LocationIcon from 'vue-material-design-icons/MapMarker.vue';
 import TagIcon from 'vue-material-design-icons/Tag.vue';
 
-import { t, getCanonicalLocale } from '@services/l10n';
+import { t, n, getCanonicalLocale } from '@services/l10n';
 import { cacheData, getCachedData } from '@services/cache';
 import { isAbortError, useAbort } from '@services/utils/abort-vue';
 import * as utils from '@services/utils/common';
 import * as dav from '@services/dav';
+import { ageAt } from '@services/people';
 
-import type { IImageInfo, IPhoto, IExif } from '@typings';
+import type { IFace, IImageInfo, IPhoto, IExif } from '@typings';
 import type { IFolder, INode, IView } from '@nextcloud/files';
 
 interface TopField {
@@ -322,6 +326,12 @@ const people = computed(() => {
 
   return clusters?.recognize ?? [];
 });
+
+/** Age of a person on this photo, from their birthdate and the date taken */
+function ageOf(face: IFace): number | null {
+  if (!face.birthdate || !baseInfo.value?.datetaken) return null;
+  return ageAt(face.birthdate, new Date(baseInfo.value.datetaken * 1000));
+}
 
 /** Whether this file is shared by someone else */
 const isShared = computed(() => !!baseInfo.value.owneruid && baseInfo.value.owneruid !== utils.uid);
@@ -551,6 +561,17 @@ a {
     display: inline-block;
     vertical-align: top;
     font-size: 0.85em;
+
+    > .age {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      padding: 0 6px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.55);
+      color: white;
+      font-size: 0.85em;
+    }
 
     @media (max-width: 768px) {
       font-size: 0.95em;

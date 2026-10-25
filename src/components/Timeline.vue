@@ -151,6 +151,8 @@ import * as nativex from '@native';
 
 import { API, DaysFilterType } from '@services/API';
 import * as lens from '@services/lens';
+import * as locked from '@services/locked';
+import * as people from '@services/people';
 
 import type { RouteLocationNormalized } from 'vue-router';
 import type { IDay, IHeadRow, IPhoto, IPhotoRow, IRecyclerState, IRow } from '@typings';
@@ -887,6 +889,21 @@ function getQuery() {
     }
   }
 
+  // Several people at once
+  if (routeIs.Together) {
+    const backend = utils.routeParamToString(route.params.backend);
+    const ids = people.parseTogetherIds(route.params.ids);
+    if (!backend || !ids.length) {
+      throw new Error('Invalid together route');
+    }
+    set(DaysFilterType.TOGETHER, `${backend}/${ids.join(',')}`);
+  }
+
+  // Locked folder
+  if (routeIs.Locked) {
+    set(DaysFilterType.LOCKED);
+  }
+
   // Places
   if (routeIs.Places) {
     if (name?.includes('-')) {
@@ -949,6 +966,21 @@ async function fetchDays({
   // Lens search, duplicates and trash modes serve fake days, not the days API
   if (routeIs.Search || routeIs.Trash || routeIs.Duplicates) {
     return await fetchFakeDays({ signal });
+  }
+
+  // The locked folder needs a PIN first
+  if (routeIs.Locked) {
+    let open = false;
+    try {
+      open = await locked.ensureUnlocked();
+    } catch (e) {
+      console.error(e);
+    }
+    signal.throwIfAborted();
+    if (!open) {
+      router.replace({ name: 'timeline' });
+      return;
+    }
   }
 
   // Get URL an cache identifier

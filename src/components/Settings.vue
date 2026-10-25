@@ -261,6 +261,10 @@
       </NcCheckboxRadioSwitch>
     </NcAppSettingsSection>
 
+    <NcAppSettingsSection id="partners-settings" :name="names.partners" v-if="!isNative">
+      <PartnersSettings />
+    </NcAppSettingsSection>
+
     <NcAppSettingsSection id="map-settings" :name="names.map" v-if="tileServers.length > 0">
       <NcCheckboxRadioSwitch
         :model-value="config.map_cluster_density > 1"
@@ -334,6 +338,7 @@ import NcButton from '@nextcloud/vue/components/NcButton';
 import NcTextField from '@nextcloud/vue/components/NcTextField';
 const NcAppSettingsDialog = defineAsyncComponent(() => import('@nextcloud/vue/components/NcAppSettingsDialog'));
 const NcAppSettingsSection = defineAsyncComponent(() => import('@nextcloud/vue/components/NcAppSettingsSection'));
+const PartnersSettings = defineAsyncComponent(() => import('@components/PartnersSettings.vue'));
 const NcCheckboxRadioSwitch = defineAsyncComponent(() => import('@nextcloud/vue/components/NcCheckboxRadioSwitch'));
 const NcChip = defineAsyncComponent(() => import('@nextcloud/vue/components/NcChip'));
 
@@ -358,6 +363,7 @@ const names = {
   account: t('memories', 'Account'),
   folders: t('memories', 'Folders'),
   albums: t('memories', 'Albums'),
+  partners: t('memories', 'Partner sharing'),
   map: t('memories', 'Map View'),
 };
 

@@ -30,6 +30,8 @@ export const enum DaysFilterType {
   PLACE = 'places',
   TAG = 'tags',
   MAP_BOUNDS = 'mapbounds',
+  TOGETHER = 'together',
+  LOCKED = 'locked',
 
   FACE_RECT = 'facerect',
   RECURSIVE = 'recursive',
@@ -271,5 +273,29 @@ export class API {
 
   static LENS_DUPLICATES() {
     return gen(`${BASE}/lens/duplicates`);
+  }
+
+  static PEOPLE_META(backend: string, name: string) {
+    return gen(`${BASE}/people/{backend}/{name}`, { backend, name });
+  }
+
+  static PEOPLE_BIRTHDATE(backend: string, name: string) {
+    return gen(`${BASE}/people/{backend}/{name}/birthdate`, { backend, name });
+  }
+
+  static LOCKED(action: '' | 'pin' | 'unlock' | 'lock' = '') {
+    return gen(`${BASE}/locked${action ? '/' + action : ''}`);
+  }
+
+  static PARTNERS() {
+    return gen(`${BASE}/partners`);
+  }
+
+  static PARTNER(uid: string) {
+    return gen(`${BASE}/partners/{uid}`, { uid });
+  }
+
+  static PARTNER_TIMELINE(owner: string) {
+    return gen(`${BASE}/partners/{owner}/timeline`, { owner });
   }
 }

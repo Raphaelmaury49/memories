@@ -50,8 +50,11 @@
 
     <template #buttons>
       <div class="button-grid">
-        <NcButton class="primary" :disabled="!!loading" @click="createLink">
+        <NcButton class="primary" :disabled="!!loading" @click="createLink(false)">
           {{ t('memories', 'Create Link') }}
+        </NcButton>
+        <NcButton class="primary" :disabled="!!loading" @click="createLink(true)">
+          {{ t('memories', 'Create link guests can add photos to') }}
         </NcButton>
         <NcButton class="primary" :disabled="!!loading" @click="refreshUrls">
           {{ t('memories', 'Refresh') }}
@@ -182,6 +185,10 @@ function getShareLabels(share: IShare): string {
     labels.push(t('memories', 'Editable'));
   }
 
+  if (share.upload) {
+    labels.push(t('memories', 'Guests can add photos'));
+  }
+
   if (labels.length > 0) {
     return `${labels.join(', ')}`;
   }
@@ -189,11 +196,11 @@ function getShareLabels(share: IShare): string {
   return t('memories', 'Read only');
 }
 
-async function createLink(): Promise<IShare | null> {
+async function createLink(upload = false): Promise<IShare | null> {
   const signal = abort.renew();
   loading.value++;
   try {
-    const res = await axios.post<IShare>(API.SHARE_NODE(), { path: filename.value }, { signal });
+    const res = await axios.post<IShare>(API.SHARE_NODE(), { path: filename.value, upload }, { signal });
     const newShare = res.data;
     signal.throwIfAborted();
     shares.value.push(newShare);
@@ -256,5 +263,6 @@ function refreshSidebar() {
 div.button-grid {
   display: flex;
   gap: 1em;
+  flex-wrap: wrap;
 }
 </style>

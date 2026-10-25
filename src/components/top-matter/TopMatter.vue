@@ -21,6 +21,8 @@ import AlbumTopMatter from './AlbumTopMatter.vue';
 import PlacesTopMatter from './PlacesTopMatter.vue';
 import SearchTopMatter from './SearchTopMatter.vue';
 import DuplicatesTopMatter from './DuplicatesTopMatter.vue';
+import LockedTopMatter from './LockedTopMatter.vue';
+import TogetherTopMatter from './TogetherTopMatter.vue';
 import TrashTopMatter from './TrashTopMatter.vue';
 
 import initstate from '@services/init-state';
@@ -58,6 +60,10 @@ const currentmatter = computed(() => {
       return markRaw(SearchTopMatter);
     case routes.Duplicates.name:
       return markRaw(DuplicatesTopMatter);
+    case routes.Locked.name:
+      return markRaw(LockedTopMatter);
+    case routes.Together.name:
+      return markRaw(TogetherTopMatter);
     case routes.RecognizeList.name:
     case routes.Recognize.name:
     case routes.FaceRecognitionList.name:

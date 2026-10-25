@@ -53,6 +53,8 @@ declare module '@typings' {
   export interface IFace extends ICluster {
     /** User for face */
     user_id: string;
+    /** Birthdate YYYY-MM-DD, set by the user */
+    birthdate?: string | null;
   }
 
   export interface IPlace extends ICluster {
