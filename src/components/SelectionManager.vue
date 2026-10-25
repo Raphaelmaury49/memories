@@ -720,6 +720,20 @@ function selectPhoto(photo: IPhoto, val?: boolean, noUpdate?: boolean) {
   }
 }
 
+/** Select many photos at once with a single update pass */
+function selectMany(photos: IPhoto[]) {
+  const days = new Set<number>();
+  for (const photo of photos) {
+    selectPhoto(photo, true, true);
+    days.add(photo.dayid);
+  }
+  for (const dayid of days) {
+    const head = props.heads.get(dayid);
+    if (head) updateHeadSelected(head);
+  }
+  selectionChanged();
+}
+
 /** Multi-select */
 function selectMulti(photo: IPhoto, rows: IRow[], rowIdx: number) {
   const pRow = rows[rowIdx];
@@ -1100,6 +1114,7 @@ function openViewer(photo: IPhoto) {
 
 defineExpose({
   selectHead,
+  selectMany,
   clickSelectionIcon,
   clickPhoto,
   touchstartPhoto,

@@ -264,4 +264,12 @@ export class API {
   static LENS_SEARCH() {
     return gen(`${BASE}/lens/search`);
   }
+
+  static LENS_SIMILAR(fileid: number) {
+    return gen(`${BASE}/lens/similar/{fileid}`, { fileid });
+  }
+
+  static LENS_DUPLICATES() {
+    return gen(`${BASE}/lens/duplicates`);
+  }
 }

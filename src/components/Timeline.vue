@@ -312,6 +312,7 @@ utils.useBus('memories:timeline:fetch-day', fetchDay);
 utils.useBus('memories:timeline:deleted', deleteFromViewWithAnimation);
 utils.useBus('memories:timeline:soft-refresh', softRefresh);
 utils.useBus('memories:timeline:hard-refresh', refresh);
+utils.useBus('memories:timeline:select-duplicates', selectDuplicates);
 
 /** Whether the current route should show native files. */
 const routeHasNative = computed((): boolean => {
@@ -390,7 +391,11 @@ function timelineRouteKey(route: RouteLocationNormalized): string {
 
   // For some views, we don't want to restore state, since the
   // individual day objects cannot be fetched from the server.
-  if (route.name === routes.Search.name || route.name === routes.Trash.name) {
+  if (
+    route.name === routes.Search.name ||
+    route.name === routes.Trash.name ||
+    route.name === routes.Duplicates.name
+  ) {
     return disableRouterStatePersistence(routerStatePath(route));
   }
 
@@ -940,8 +945,8 @@ async function fetchDays({
     updateLoading(-1);
   }
 
-  // Lens search and trash modes serve fake days, not the days API
-  if (routeIs.Search || routeIs.Trash) {
+  // Lens search, duplicates and trash modes serve fake days, not the days API
+  if (routeIs.Search || routeIs.Trash || routeIs.Duplicates) {
     return await fetchFakeDays({ signal });
   }
 
@@ -1091,6 +1096,11 @@ async function processDays(data: IDay[], cache: boolean, signal?: AbortSignal) {
     // Special headers - lens search
     if (routeIs.Search) {
       lens.markSearchHead(day, head);
+    }
+
+    // Special headers - duplicate groups
+    if (routeIs.Duplicates) {
+      lens.markDuplicateHead(day, head);
     }
 
     // Add header to list
@@ -1864,6 +1874,18 @@ async function deleteFromViewWithAnimation(delPhotos: IPhoto[]) {
   }
 }
 
+/** Select every photo except the suggested keeper of each duplicate group */
+function selectDuplicates() {
+  if (!routeIs.Duplicates) return;
+  const photos: IPhoto[] = [];
+  for (const head of heads.value.values()) {
+    for (const photo of head.day.detail ?? []) {
+      if (!photo.dupkeeper) photos.push(photo);
+    }
+  }
+  selectionManager.value?.selectMany(photos);
+}
+
 /** Fetch fake days with preloaded detail (special routes) */
 async function fetchFakeDays({
   signal = abort.signal,
@@ -1876,7 +1898,14 @@ async function fetchFakeDays({
     if (routeIs.Trash) {
       days = await dav.getTrashDays({ signal });
     } else if (routeIs.Search) {
-      days = await lens.getLensSearchDays(lens.routeQueryText(route.query.q).trim(), { limit: 200, signal });
+      days = await lens.getLensSearchDays(lens.routeQueryText(route.query.q).trim(), {
+        limit: 200,
+        signal,
+        mode: lens.routeQueryMode(route.query.mode),
+        similar: lens.routeQuerySimilar(route.query.similar),
+      });
+    } else if (routeIs.Duplicates) {
+      days = lens.duplicateDays(await lens.getDuplicates({ signal, refresh: !!route.query.refresh }));
     } else {
       throw new Error('Expected fake day route');
     }

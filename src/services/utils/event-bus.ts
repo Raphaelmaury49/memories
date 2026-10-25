@@ -31,6 +31,8 @@ export type BusEvent = {
   'memories:timeline:soft-refresh': null;
   /** Hard-refresh the timeline */
   'memories:timeline:hard-refresh': null;
+  /** Select every non-keeper in the duplicates view */
+  'memories:timeline:select-duplicates': null;
   /** Timeline recycler scrolling */
   'memories.recycler.scroll': {
     current: number;

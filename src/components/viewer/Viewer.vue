@@ -105,7 +105,7 @@
 
 <script setup lang="ts">
 import { computed, markRaw, nextTick, onMounted, reactive, ref, useTemplateRef, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import NcActions from '@nextcloud/vue/components/NcActions';
 import NcActionButton from '@nextcloud/vue/components/NcActionButton';
@@ -165,6 +165,7 @@ import EditFileIcon from 'vue-material-design-icons/FileEdit.vue';
 import AlbumRemoveIcon from 'vue-material-design-icons/BookRemove.vue';
 import AlbumIcon from 'vue-material-design-icons/ImageAlbum.vue';
 import RotateLeftIcon from 'vue-material-design-icons/RotateLeft.vue';
+import ImageSearchIcon from 'vue-material-design-icons/ImageSearch.vue';
 
 type IViewerAction = {
   /** Identifier (optional) */
@@ -197,6 +198,7 @@ defineOptions({
 const outer = useTemplateRef<HTMLDivElement>('outer');
 const inner = useTemplateRef<HTMLDivElement>('inner');
 const route = useRoute();
+const router = useRouter();
 const routeIs = useRouteIs();
 
 const loading = ref(0);
@@ -475,6 +477,13 @@ const actions = computed((): IViewerAction[] => {
       callback: () => downloadByFileId(raw.fileid),
       if: canDownload.value,
     })),
+    {
+      id: 'similar',
+      name: t('memories', 'Similar photos'),
+      icon: markRaw(ImageSearchIcon),
+      callback: showSimilar,
+      if: !!config.lens_enabled && !routeIs.Public && !isLocal.value && !isVideo.value,
+    },
     {
       id: 'view-in-folder',
       name: t('memories', 'View in folder'),
@@ -1458,6 +1467,17 @@ function setBottomSheet(want?: boolean) {
 /**
  * Open the files app with the current file.
  */
+/** Open the search view with photos that look like this one. */
+async function showSimilar() {
+  const fileid = currentPhoto.value?.fileid;
+  if (!fileid) return;
+  try {
+    await router.push({ name: 'search', query: { similar: String(fileid) } });
+  } catch {
+    // duplicated navigation
+  }
+}
+
 async function viewInFolder() {
   dav.viewInFolder(currentPhoto.value!, { route });
 }

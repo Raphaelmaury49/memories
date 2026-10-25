@@ -64,6 +64,8 @@ import VideoIcon from 'vue-material-design-icons/PlayCircle.vue';
 import PanoramaIcon from 'vue-material-design-icons/PanoramaVariant.vue';
 import ArchiveIcon from 'vue-material-design-icons/PackageDown.vue';
 import TrashIcon from 'vue-material-design-icons/Delete.vue';
+import DuplicatesIcon from 'vue-material-design-icons/ContentDuplicate.vue';
+import LockIcon from 'vue-material-design-icons/Lock.vue';
 import CalendarIcon from 'vue-material-design-icons/Calendar.vue';
 import MapIcon from 'vue-material-design-icons/Map.vue';
 import CogIcon from 'vue-material-design-icons/Cog.vue';
@@ -143,6 +145,17 @@ const categories = ref([
     name: t('memories', 'Map'),
     icon: markRaw(MapIcon),
     link: '/map',
+  },
+  {
+    name: t('memories', 'Duplicates'),
+    icon: markRaw(DuplicatesIcon),
+    link: '/duplicates',
+    if: () => !!config.lens_enabled,
+  },
+  {
+    name: t('memories', 'Locked folder'),
+    icon: markRaw(LockIcon),
+    link: '/locked',
   },
   {
     name: t('memories', 'Trash'),

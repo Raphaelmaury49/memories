@@ -127,6 +127,13 @@ declare module '@typings' {
 
     /** Identical files hidden by de-duplication */
     dups?: IPhoto[];
+
+    /** Burst group id from server (same id = same burst) */
+    burstid?: string;
+    /** Other shots of the burst stacked under this cover */
+    stackburst?: IPhoto[];
+    /** Suggested keeper of a near-duplicate group (duplicates view only) */
+    dupkeeper?: boolean;
   };
 
   export interface IImageInfo {

@@ -36,12 +36,75 @@ export type ILensHit = {
   dayid: number;
 };
 
+/** Search mode: what the image looks like, or words written in it. */
+export type LensMode = 'visual' | 'ocr';
+
+/** Read the ?mode= route query, defaulting to visual. */
+export function routeQueryMode(value: unknown): LensMode {
+  return routeQueryText(value) === 'ocr' ? 'ocr' : 'visual';
+}
+
+/** Read the ?similar= route query as a positive file id, else 0. */
+export function routeQuerySimilar(value: unknown): number {
+  const id = Number(routeQueryText(value));
+  return Number.isInteger(id) && id > 0 ? id : 0;
+}
+
 /** Run a lens text search; hits stay in score order. */
-export async function searchLens(text: string, opts?: { limit?: number; signal?: AbortSignal }): Promise<ILensHit[]> {
-  const { limit = 200, signal } = opts ?? {};
-  const res = await axios.get<ILensHit[]>(API.Q(API.LENS_SEARCH(), { text, limit }), { signal });
+export async function searchLens(
+  text: string,
+  opts?: { limit?: number; signal?: AbortSignal; mode?: LensMode },
+): Promise<ILensHit[]> {
+  const { limit = 200, signal, mode = 'visual' } = opts ?? {};
+  const res = await axios.get<ILensHit[]>(API.Q(API.LENS_SEARCH(), { text, limit, mode }), { signal });
   if (res.status !== 200) throw res;
   return res.data;
+}
+
+/** Files that look like the given one, score order. */
+export async function searchSimilar(fileid: number, opts?: { limit?: number; signal?: AbortSignal }) {
+  const { limit = 200, signal } = opts ?? {};
+  const res = await axios.get<ILensHit[]>(API.Q(API.LENS_SIMILAR(fileid), { limit }), { signal });
+  if (res.status !== 200) throw res;
+  return res.data;
+}
+
+/** One near-duplicate group; the server puts the suggested keeper first. */
+export type IDuplicateHit = ILensHit & { size: number | null; basename: string | null };
+
+/** Fetch near-duplicate groups for the user's timeline. */
+export async function getDuplicates(opts?: { refresh?: boolean; signal?: AbortSignal }) {
+  const { refresh = false, signal } = opts ?? {};
+  const res = await axios.get<{ groups: IDuplicateHit[][] }>(API.Q(API.LENS_DUPLICATES(), { refresh: +refresh }), {
+    signal,
+  });
+  if (res.status !== 200) throw res;
+  return res.data.groups;
+}
+
+/** Day ID base for duplicate groups; far-future so groups never collide with real days. */
+export const DUPLICATE_DAYID_BASE = 60000;
+
+/** Wrap each duplicate group as its own day, keeper first; non-keepers flagged for bulk selection. */
+export function duplicateDays(groups: IDuplicateHit[][]): IDay[] {
+  return groups.map((group, i) => {
+    const dayid = DUPLICATE_DAYID_BASE + i;
+    const detail = group.map((hit, j) => {
+      const photo = hitToPhoto(hit, dayid);
+      photo.key = `dup-${i}-${hit.fileid}`;
+      photo.basename = hit.basename ?? undefined;
+      photo.size = hit.size ?? undefined;
+      photo.dupkeeper = j === 0;
+      return photo;
+    });
+    return { dayid, count: detail.length, detail };
+  });
+}
+
+/** Title duplicate group heads with their size. */
+export function markDuplicateHead(day: IDay, head: IHeadRow | undefined): void {
+  if (!head) return;
+  head.name = t('memories', '{n} similar items', { n: day.count });
 }
 
 /** Map one hit to a photo in the given day. */
@@ -101,11 +164,11 @@ export function markSearchHead(day: IDay, head: IHeadRow | undefined): void {
 /** Search and wrap hits as days: top hits first, all hits grouped by month. */
 export async function getLensSearchDays(
   text: string,
-  opts?: { limit?: number; signal?: AbortSignal },
+  opts?: { limit?: number; signal?: AbortSignal; mode?: LensMode; similar?: number },
 ): Promise<IDay[]> {
-  if (!text.trim()) return [];
-  const { limit = 200, signal } = opts ?? {};
-  const hits = await searchLens(text, { limit, signal });
+  const { limit = 200, signal, mode, similar = 0 } = opts ?? {};
+  if (!similar && !text.trim()) return [];
+  const hits = similar ? await searchSimilar(similar, { limit, signal }) : await searchLens(text, { limit, signal, mode });
   signal?.throwIfAborted();
   if (!hits.length) return [];
 

@@ -81,6 +81,8 @@ return [
         ['name' => 'Lens#file', 'url' => '/lens/file/{fileid}', 'verb' => 'GET', 'requirements' => ['fileid' => '\d+']],
         ['name' => 'Lens#scan', 'url' => '/lens/scan', 'verb' => 'POST'],
         ['name' => 'Lens#search', 'url' => '/api/lens/search', 'verb' => 'GET'],
+        ['name' => 'Lens#similar', 'url' => '/api/lens/similar/{fileid}', 'verb' => 'GET', 'requirements' => ['fileid' => '\d+']],
+        ['name' => 'Lens#duplicates', 'url' => '/api/lens/duplicates', 'verb' => 'GET'],
 
         ['name' => 'Share#links', 'url' => '/api/share/links', 'verb' => 'GET'],
         ['name' => 'Share#createNode', 'url' => '/api/share/node', 'verb' => 'POST'],

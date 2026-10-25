@@ -48,6 +48,15 @@ export function routeIs(route: RouteLocation) {
     get Trash(): boolean {
       return isName(route, routes.Trash.name);
     },
+    get Duplicates(): boolean {
+      return isName(route, routes.Duplicates.name);
+    },
+    get Locked(): boolean {
+      return isName(route, routes.Locked.name);
+    },
+    get Together(): boolean {
+      return isName(route, routes.Together.name);
+    },
     get ArchiveFolder(): boolean {
       if (isName(route, routes.Archive.name)) return true;
       if (isName(route, routes.Folders.name)) {

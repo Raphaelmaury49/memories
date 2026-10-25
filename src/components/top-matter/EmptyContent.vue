@@ -69,6 +69,12 @@ const emptyViewDescription = computed((): string => {
   if (routeIs.Trash) {
     return t('memories', 'Deleted photos will appear here.');
   }
+  if (routeIs.Duplicates) {
+    return t('memories', 'No duplicates found. Groups of near-identical photos will appear here.');
+  }
+  if (routeIs.Search) {
+    return t('memories', 'No photos match this search.');
+  }
   if (routeIs.Tags) {
     return t('memories', 'Tag photos to find them easily');
   }

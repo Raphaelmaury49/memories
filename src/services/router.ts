@@ -70,6 +70,27 @@ export const routes = {
     props: (route: RouteLocationNormalized) => ({ rootTitle: t('memories', 'Trash') }),
   },
 
+  Duplicates: {
+    path: '/duplicates',
+    component: () => import('@components/Timeline.vue'),
+    name: 'duplicates',
+    props: (route: RouteLocationNormalized) => ({ rootTitle: t('memories', 'Duplicates') }),
+  },
+
+  Locked: {
+    path: '/locked',
+    component: () => import('@components/Timeline.vue'),
+    name: 'locked',
+    props: (route: RouteLocationNormalized) => ({ rootTitle: t('memories', 'Locked folder') }),
+  },
+
+  Together: {
+    path: '/together/:backend/:ids',
+    component: () => import('@components/Timeline.vue'),
+    name: 'together',
+    props: (route: RouteLocationNormalized) => ({ rootTitle: t('memories', 'People') }),
+  },
+
   ThisDay: {
     path: '/thisday',
     component: () => import('@components/Timeline.vue'),

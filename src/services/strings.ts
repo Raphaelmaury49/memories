@@ -23,6 +23,12 @@ export function viewName(route: RouteLocationNormalized): string {
       return t('memories', 'Archive');
     case routes.Trash.name:
       return t('memories', 'Trash');
+    case routes.Duplicates.name:
+      return t('memories', 'Duplicates');
+    case routes.Locked.name:
+      return t('memories', 'Locked folder');
+    case routes.Together.name:
+      return t('memories', 'People');
     case routes.ThisDay.name:
       return t('memories', 'On this day');
     case routes.TagsList.name:
