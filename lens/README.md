@@ -77,6 +77,26 @@ Start it:
 docker compose up -d lens qdrant
 ```
 
+## OCR, similar photos and duplicates
+
+The daemon also recognizes text in indexed images (RapidOCR, PP-OCR ONNX
+models pinned by the `rapidocr` package version) in a background pass that
+yields to indexing, and serves similar-photo and near-duplicate queries.
+Optional settings:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `OCR_ENABLED` | `1` | Run the OCR pass |
+| `OCR_MODEL_TYPE` | `small` | `tiny`, `small` or `medium` PP-OCRv6 models |
+| `OCR_MIN_SCORE` | `0.6` | Drop recognized lines below this confidence |
+| `OCR_BATCH_SIZE` | `8` | Files per OCR step |
+| `OCR_VERSION` | `1` | Bump to redo OCR for every file |
+| `DUPLICATE_THRESHOLD` | `0.95` | Cosine similarity for two files to be near-duplicates |
+| `DUPLICATE_NEIGHBORS` | `16` | Neighbors checked per file |
+| `DUPLICATE_CACHE_TTL` | `600` | Seconds a duplicate scan is cached per user scope |
+
+OCR models are downloaded into `MODEL_CACHE_DIR/rapidocr` on first start.
+
 ## Development
 
 ```bash
