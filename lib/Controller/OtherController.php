@@ -121,6 +121,7 @@ final class OtherController extends ApiController
                 'timeline_path' => $this->systemConfig->getUserConfigValue('timelinePath', $this->systemConfig->get('memories.timeline.default_path')),
                 'enable_top_memories' => 'true' === $this->systemConfig->getUserConfigValue('enableTopMemories', 'true'),
                 'stack_raw_files' => 'true' === $this->systemConfig->getUserConfigValue('stackRawFiles', 'true'),
+                'stack_bursts' => 'true' === $this->systemConfig->getUserConfigValue('stackBursts', 'true'),
                 'dedup_identical' => 'true' === $this->systemConfig->getUserConfigValue('dedupIdentical', 'false'),
                 'show_owner_name_timeline' => 'true' === $this->systemConfig->getUserConfigValue('showOwnerNameTimeline', 'false'),
                 'show_photo_basename' => 'true' === $this->systemConfig->getUserConfigValue('showPhotoBasename', 'false'),

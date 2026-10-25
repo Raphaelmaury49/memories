@@ -107,6 +107,7 @@ trait TimelineQueryDays
             ->selectAlias('m.liveid', 'liveid')
             ->selectAlias('m.isvideo', 'isvideo')
             ->selectAlias('m.pano', 'pano')
+            ->selectAlias('m.burstid', 'burstid')
             ->selectAlias('m.video_duration', 'video_duration')
             ->selectAlias('f.etag', 'etag')
             ->selectAlias('m.indexed_at', 'indexed_at')
@@ -319,6 +320,9 @@ trait TimelineQueryDays
         }
         if (!$row['pano']) {
             unset($row['pano']);
+        }
+        if (empty($row['burstid'])) {
+            unset($row['burstid']);
         }
 
         // Favorite field, may not be present

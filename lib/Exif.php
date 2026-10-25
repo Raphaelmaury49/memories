@@ -346,6 +346,39 @@ final class Exif
     }
 
     /**
+     * Group key shared by all shots of one burst, or null.
+     *
+     * Sources: Apple BurstUUID, then camera naming conventions
+     * (Google/Sony "_BURST<timestamp>", Huawei "_BURST<nnn>", Samsung "<date>_<time>_<nnn>").
+     *
+     * @param string               $basename file name
+     * @param array<string, mixed> $exif     raw exif
+     */
+    public static function getBurstId(string $basename, array $exif): ?string
+    {
+        $uuid = $exif['BurstUUID'] ?? null;
+        if (\is_string($uuid) && \strlen($uuid) >= 8) {
+            return 'apple:'.strtolower($uuid);
+        }
+
+        $name = pathinfo($basename, PATHINFO_FILENAME);
+
+        if (preg_match('/_BURST(\d{14,17})/i', $name, $m)) {
+            return 'burst:'.$m[1];
+        }
+
+        if (preg_match('/^(.*\d{8}_\d{6})_BURST\d{2,3}(?:_COVER)?$/i', $name, $m)) {
+            return 'huawei:'.$m[1];
+        }
+
+        if (preg_match('/^(\d{8}_\d{6})_\d{3}$/', $name, $m)) {
+            return 'samsung:'.$m[1];
+        }
+
+        return null;
+    }
+
+    /**
      * Get the list of MIME Types that are allowed to be edited.
      */
     public function allowedEditMimetypes(): array

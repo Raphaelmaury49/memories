@@ -29,6 +29,7 @@ declare module '@typings' {
     timeline_path: string;
     enable_top_memories: boolean;
     stack_raw_files: boolean;
+    stack_bursts: boolean;
     dedup_identical: boolean;
     show_owner_name_timeline: boolean;
     show_photo_basename: boolean;

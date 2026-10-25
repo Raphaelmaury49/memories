@@ -33,6 +33,8 @@ export type BusEvent = {
   'memories:timeline:hard-refresh': null;
   /** Select every non-keeper in the duplicates view */
   'memories:timeline:select-duplicates': null;
+  /** Expand or collapse a stacked burst */
+  'memories:timeline:toggle-burst': { burstid: string; dayid: number };
   /** Timeline recycler scrolling */
   'memories.recycler.scroll': {
     current: number;

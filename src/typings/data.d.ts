@@ -132,6 +132,8 @@ declare module '@typings' {
     burstid?: string;
     /** Other shots of the burst stacked under this cover */
     stackburst?: IPhoto[];
+    /** Burst expanded by the user; shots shown individually */
+    burstopen?: boolean;
     /** Suggested keeper of a near-duplicate group (duplicates view only) */
     dupkeeper?: boolean;
   };

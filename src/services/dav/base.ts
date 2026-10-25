@@ -280,11 +280,12 @@ export async function extendWithStack(photos: IPhoto[], opts?: AbortOpts): Promi
     livePhotos.push(...res.filter(utils.truthy));
   }
 
-  // Add stacked RAW files (deduped)
+  // Add stacked RAW files and burst shots (deduped)
   const stackRaw = photos.map((p) => p.stackraw ?? []).flat();
+  const stackBurst = photos.map((p) => p.stackburst ?? []).flat();
 
   // Combine all files
-  const combined = [...photos, ...livePhotos, ...stackRaw];
+  const combined = [...photos, ...livePhotos, ...stackRaw, ...stackBurst];
 
   // De-duplicate keeping the order same as before
   // https://github.com/pulsejet/memories/issues/1056

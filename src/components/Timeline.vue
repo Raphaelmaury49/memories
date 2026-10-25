@@ -313,6 +313,7 @@ utils.useBus('memories:timeline:deleted', deleteFromViewWithAnimation);
 utils.useBus('memories:timeline:soft-refresh', softRefresh);
 utils.useBus('memories:timeline:hard-refresh', refresh);
 utils.useBus('memories:timeline:select-duplicates', selectDuplicates);
+utils.useBus('memories:timeline:toggle-burst', toggleBurst);
 
 /** Whether the current route should show native files. */
 const routeHasNative = computed((): boolean => {
@@ -1395,6 +1396,9 @@ async function fetchDayExpire(signal: AbortSignal = abort.signal) {
             // keep deduped copies up to date (#1299)
             curr.dups = now.dups;
 
+            // keep stacked burst shots up to date
+            curr.stackburst = now.stackburst;
+
             return true;
           }
 
@@ -1479,7 +1483,7 @@ function preprocessDay(dayId: number, data: IPhoto[]): IPhoto[] {
   }
 
   // Skip second pass unless needed
-  if (!toStack.size) return res1;
+  if (!toStack.size) return stackBursts(res1);
 
   // File IDs that have been stacked
   const stacked = new Set<IPhoto>();
@@ -1515,7 +1519,44 @@ function preprocessDay(dayId: number, data: IPhoto[]): IPhoto[] {
   // Remove files that were stacked
   const res2 = res1.filter((p) => !stacked.has(p));
 
-  return res2;
+  return stackBursts(res2);
+}
+
+/** Bursts the user expanded in this session; their shots show individually. */
+const expandedBursts = new Set<string>();
+
+/**
+ * Stack shots sharing a burst id under one cover:
+ * the shot named *COVER* if any, else the first in timeline order.
+ */
+function stackBursts(data: IPhoto[]): IPhoto[] {
+  if (!config.stack_bursts) return data;
+
+  const groups = new Map<string, IPhoto[]>();
+  for (const photo of data) {
+    photo.burstopen = !!photo.burstid && expandedBursts.has(photo.burstid);
+    if (!photo.burstid || photo.burstopen) continue;
+    const group = groups.get(photo.burstid);
+    if (group) group.push(photo);
+    else groups.set(photo.burstid, [photo]);
+  }
+
+  const stacked = new Set<IPhoto>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const cover = group.find((p) => /cover/i.test(p.basename ?? '')) ?? group[0]!;
+    cover.stackburst = group.filter((p) => p !== cover);
+    cover.stackburst.forEach((p) => stacked.add(p));
+  }
+
+  return stacked.size ? data.filter((p) => !stacked.has(p)) : data;
+}
+
+/** Expand or collapse one burst, then reflow its day. */
+function toggleBurst({ burstid, dayid }: { burstid: string; dayid: number }) {
+  if (expandedBursts.has(burstid)) expandedBursts.delete(burstid);
+  else expandedBursts.add(burstid);
+  fetchDay(dayid, { now: true });
 }
 
 /**

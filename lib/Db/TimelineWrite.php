@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Memories\Db;
 
+use OCA\Memories\Exif;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\File;
 use OCP\Lock\ILockingProvider;
@@ -171,6 +172,7 @@ final class TimelineWrite
             'mapcluster' => $query->createNamedParameter($mapCluster, IQueryBuilder::PARAM_INT),
             'orphan' => $query->createNamedParameter(false, IQueryBuilder::PARAM_BOOL),
             'buid' => $query->createNamedParameter($buid, IQueryBuilder::PARAM_STR),
+            'burstid' => $query->createNamedParameter(Exif::getBurstId($file->getName(), $exif), IQueryBuilder::PARAM_STR),
             'parent' => $query->createNamedParameter($file->getParent()->getId(), IQueryBuilder::PARAM_INT),
         ];
 

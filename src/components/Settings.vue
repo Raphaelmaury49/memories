@@ -55,6 +55,14 @@
       </NcCheckboxRadioSwitch>
 
       <NcCheckboxRadioSwitch
+        :model-value="config.stack_bursts"
+        @update:model-value="updateStackBursts"
+        type="switch"
+      >
+        {{ t('memories', 'Stack burst shots') }}
+      </NcCheckboxRadioSwitch>
+
+      <NcCheckboxRadioSwitch
         :model-value="config.dedup_identical"
         @update:model-value="updateDedupIdentical"
         type="switch"
@@ -447,6 +455,11 @@ async function updateEnableTopMemories(val: boolean) {
 
 async function updateStackRawFiles(val: boolean) {
   await setConfig('stack_raw_files', val);
+}
+
+async function updateStackBursts(val: boolean) {
+  await setConfig('stack_bursts', val);
+  utils.bus.emit('memories:timeline:hard-refresh', null);
 }
 
 async function updateDedupIdentical(val: boolean) {

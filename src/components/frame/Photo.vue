@@ -20,6 +20,16 @@
       </div>
 
       <div class="flag top-right">
+        <button
+          v-if="burstCount || data.burstopen"
+          class="burst"
+          :title="burstCount ? t('memories', 'Burst of {n} shots', { n: burstCount }) : t('memories', 'Stack burst')"
+          @pointerdown.stop
+          @click.stop="toggleBurst"
+        >
+          <BurstIcon :size="18" />
+          <span class="count" v-if="burstCount">{{ burstCount }}</span>
+        </button>
         <RawIcon class="raw" v-if="isRaw" :size="28" />
         <div class="video" v-if="data.flag & constants.FLAG_IS_VIDEO">
           <span class="time" v-if="data.video_duration">{{ videoDuration }}</span>
@@ -103,6 +113,7 @@ import VideoIcon from 'vue-material-design-icons/PlayCircleOutline.vue';
 import PanoramaSphereIcon from 'vue-material-design-icons/PanoramaSphereOutline.vue';
 import LocalIcon from 'vue-material-design-icons/CloudOff.vue';
 import RawIcon from 'vue-material-design-icons/Raw.vue';
+import BurstIcon from 'vue-material-design-icons/ImageMultipleOutline.vue';
 
 import type { IDay, IPhoto } from '@typings';
 import XImg from '@components/frame/XImg.vue';
@@ -198,6 +209,17 @@ const src = computed((): string | null => {
     return url();
   }
 });
+
+/** Shots in this burst including the cover, 0 when not a stacked burst */
+const burstCount = computed((): number => {
+  const n = props.data.stackburst?.length ?? 0;
+  return n ? n + 1 : 0;
+});
+
+function toggleBurst() {
+  if (!props.data.burstid) return;
+  utils.bus.emit('memories:timeline:toggle-burst', { burstid: props.data.burstid, dayid: props.data.dayid });
+}
 
 const isRaw = computed((): boolean => {
   return !!props.data.stackraw || props.data.mimetype === constants.MIME_RAW;
@@ -484,6 +506,24 @@ $icon-size: $icon-half-size * 2;
   }
   > .raw {
     height: 22px; // force height to match
+  }
+
+  > .burst {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 22px;
+    min-height: 0;
+    margin: 0 4px 0 0;
+    padding: 0 6px;
+    border: none;
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.55);
+    color: white;
+    font-size: 0.75em;
+    font-weight: bold;
+    cursor: pointer;
   }
 }
 
