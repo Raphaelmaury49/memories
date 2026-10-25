@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from config import config
-from routes.context import embedding_model, face_model, schema_model, sentence_model, state
+from routes.context import embedding_model, face_model, ocr_model, schema_model, sentence_model, state
 
 router = APIRouter()
 
@@ -50,6 +50,16 @@ def health():
             "min_faces": config.face.min_faces,
             "restore_center_frac": config.face.restore_center_frac,
         },
+        "ocr": {
+            "enabled": config.ocr.enabled,
+            "model_type": config.ocr.model_type,
+            "version": config.ocr.version,
+            "device": ocr_model.device(),
+        },
+        "duplicates": {
+            "threshold": config.duplicates.threshold,
+            "neighbors": config.duplicates.neighbors,
+        },
         "qdrant": state.qdrant,
     }
 
@@ -67,4 +77,5 @@ def stats():
         "failed_total": queue.failed_total,
         "deferred_total": queue.deferred_total,
         "scan": state.scanner.stats if state.scanner else None,
+        "ocr": state.ocr.stats if state.ocr else None,
     }

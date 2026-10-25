@@ -12,6 +12,7 @@ from config import config
 from process.scoring import drop_low_scores
 from store.base import (
     META_ID,
+    PAYLOAD_INDEX_TIMEOUT,
     FileStore,
     check_meta,
     ensure_collection,
@@ -76,7 +77,23 @@ class EmbeddingStore(FileStore):
 
         # Integer index on parent_id for folder-scoped search.
         # Integer index on osm_ids for place-filtered search.
-        await ensure_integer_indexes(self.client, name, info, ("parent_id", "osm_ids", "fileid"))
+        await ensure_integer_indexes(self.client, name, info, ("parent_id", "osm_ids", "fileid", "ocr_v"))
+
+        # Full-text index on recognized text: accent- and case-insensitive word match.
+        if "ocr" not in (info.payload_schema or {}):
+            await self.client.create_payload_index(
+                collection_name=name,
+                field_name="ocr",
+                field_schema=models.TextIndexParams(
+                    type=models.TextIndexType.TEXT,
+                    tokenizer=models.TokenizerType.MULTILINGUAL,
+                    min_token_len=2,
+                    lowercase=True,
+                    ascii_folding=True,
+                ),
+                timeout=PAYLOAD_INDEX_TIMEOUT,
+            )
+            log.info("indexed ocr in %s", name)
 
         # Sentinel guard: stamp when absent, refuse when the space differs.
         await check_meta(self.client, name, META_ID, self._expected_meta(), self.dim)
@@ -146,6 +163,7 @@ class EmbeddingStore(FileStore):
                 must_not=[models.FieldCondition(key="kind", match=models.MatchValue(value=FAILURE_KIND))],
             ),
             limit=limit,
+            with_payload=models.PayloadSelectorExclude(exclude=["ocr"]),
         )
 
         hits = [
@@ -154,6 +172,154 @@ class EmbeddingStore(FileStore):
         ]
 
         return drop_low_scores(hits, config.embedding.score_margin)
+
+    def _scope(self, folders) -> list:
+        """Folder scope plus the failure-point exclusion shared by every user query."""
+
+        return [models.FieldCondition(
+            key="parent_id",
+            match=models.MatchAny(any=folders),
+        )]
+
+    @staticmethod
+    def _not_failure() -> list:
+        """Exclude durable retry points."""
+
+        return [models.FieldCondition(key="kind", match=models.MatchValue(value=FAILURE_KIND))]
+
+    async def search_ocr(self, text, vector, folders, limit):
+        """Files whose recognized text contains every word, ranked by visual similarity to the query."""
+
+        must = self._scope(folders) + [models.FieldCondition(key="ocr", match=models.MatchText(text=text))]
+
+        res = await self.client.query_points(
+            collection_name=self.collection,
+            query=vector,
+            query_filter=models.Filter(must=must, must_not=self._not_failure()),
+            limit=limit,
+            with_payload=models.PayloadSelectorExclude(exclude=["ocr"]),
+        )
+
+        return [{**p.payload, "score": p.score} for p in res.points]
+
+    async def similar(self, fileid, folders, limit):
+        """Nearest neighbors of one indexed file inside the caller's folders; the file itself excluded."""
+
+        res = await self.client.query_points(
+            collection_name=self.collection,
+            query=int(fileid),
+            query_filter=models.Filter(
+                must=self._scope(folders),
+                must_not=self._not_failure() + [models.HasIdCondition(has_id=[int(fileid)])],
+            ),
+            limit=limit,
+            with_payload=models.PayloadSelectorExclude(exclude=["ocr"]),
+        )
+
+        hits = [{**p.payload, "score": p.score} for p in res.points]
+
+        return drop_low_scores(hits, config.embedding.score_margin)
+
+    async def duplicates(self, folders, threshold, neighbors, page=256):
+        """Group near-identical images inside the folders; groups of 2+ files, largest first."""
+
+        scope = models.Filter(must=self._scope(folders), must_not=self._not_failure())
+        payloads: dict[int, dict] = {}
+        parent: dict[int, int] = {}
+
+        def find(x: int) -> int:
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        def union(a: int, b: int):
+            ra, rb = find(a), find(b)
+            if ra != rb:
+                parent[max(ra, rb)] = min(ra, rb)
+
+        offset = None
+        while True:
+            points, offset = await self.client.scroll(
+                collection_name=self.collection,
+                scroll_filter=scope,
+                offset=offset,
+                limit=page,
+                with_payload=models.PayloadSelectorExclude(exclude=["ocr"]),
+                with_vectors=True,
+            )
+
+            if not points:
+                break
+
+            for point in points:
+                payloads[int(point.id)] = point.payload
+                parent.setdefault(int(point.id), int(point.id))
+
+            requests = [
+                models.QueryRequest(
+                    query=point.vector,
+                    filter=scope,
+                    limit=neighbors,
+                    score_threshold=threshold,
+                )
+                for point in points
+            ]
+            results = await self.client.query_batch_points(self.collection, requests=requests)
+
+            for point, res in zip(points, results):
+                for hit in res.points:
+                    hid = int(hit.id)
+                    if hid != int(point.id):
+                        parent.setdefault(hid, hid)
+                        union(int(point.id), hid)
+
+            if offset is None:
+                break
+
+        groups: dict[int, list[dict]] = {}
+        for pid in parent:
+            if pid in payloads:
+                groups.setdefault(find(pid), []).append(payloads[pid])
+
+        out = [sorted(g, key=lambda p: (p.get("epoch") or 0, p["fileid"])) for g in groups.values() if len(g) > 1]
+        out.sort(key=lambda g: max(p.get("epoch") or 0 for p in g), reverse=True)
+
+        return out
+
+    async def ocr_pending(self, version: int, limit: int) -> list[dict]:
+        """Indexed images whose OCR is missing or from another OCR version."""
+
+        points, _ = await self.client.scroll(
+            collection_name=self.collection,
+            scroll_filter=models.Filter(
+                must=[models.FieldCondition(key="fileid", range=models.Range(gte=1))],
+                must_not=self._not_failure() + [
+                    models.FieldCondition(key="ocr_v", match=models.MatchValue(value=version)),
+                ],
+            ),
+            limit=limit,
+            with_payload=["fileid", "mtime"],
+            with_vectors=False,
+        )
+
+        return [p.payload for p in points]
+
+    async def set_ocr(self, fileid: int, mtime: int | None, text: str, version: int):
+        """Attach OCR text only if the point still holds the same file version."""
+
+        cond = [models.FieldCondition(key="fileid", match=models.MatchValue(value=int(fileid)))]
+        if mtime is None:
+            cond.append(models.IsNullCondition(is_null=models.PayloadField(key="mtime")))
+        else:
+            cond.append(models.FieldCondition(key="mtime", match=models.MatchValue(value=int(mtime))))
+
+        await self.client.set_payload(
+            collection_name=self.collection,
+            payload={"ocr": text, "ocr_v": version},
+            points=models.Filter(must=cond, must_not=self._not_failure()),
+            wait=True,
+        )
 
     async def get_failures(self, fileids: list[int]) -> dict[int, dict]:
         """Fetch durable retry counters and deadlines for a batch of files."""

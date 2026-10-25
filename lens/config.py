@@ -98,6 +98,28 @@ class FaceConfig:
 
 
 @dataclass(frozen=True)
+class OcrConfig:
+    """Text recognition pass over indexed images (RapidOCR, pinned by package version)."""
+
+    enabled: bool
+    model_type: str
+    version: int
+    batch_size: int
+    min_score: float
+    max_chars: int
+    interval: int
+
+
+@dataclass(frozen=True)
+class DuplicatesConfig:
+    """Near-duplicate grouping over image embeddings."""
+
+    threshold: float
+    neighbors: int
+    cache_ttl: int
+
+
+@dataclass(frozen=True)
 class Config:
     """All daemon settings; see ARCH.md config table."""
 
@@ -110,6 +132,8 @@ class Config:
     schema_model: SchemaModelConfig
     places: PlacesConfig
     face: FaceConfig
+    ocr: OcrConfig
+    duplicates: DuplicatesConfig
     model_cache_dir: str
     device: str
     workers: int
@@ -170,6 +194,50 @@ def _face_config() -> FaceConfig:
         score_margin=score_margin,
         suggest_samples=suggest_samples,
         suggest_ttl=suggest_ttl,
+    )
+
+
+def _ocr_config() -> OcrConfig:
+    """Build the OCR section from env; raise on garbage."""
+
+    model_type = os.environ.get("OCR_MODEL_TYPE", "small")
+    if model_type not in ("tiny", "small", "medium"):
+        raise RuntimeError("OCR_MODEL_TYPE must be tiny, small or medium")
+
+    batch_size = _int("OCR_BATCH_SIZE", 8)
+    if batch_size < 1 or batch_size > 64:
+        raise RuntimeError("OCR_BATCH_SIZE must be between 1 and 64")
+
+    min_score = _float("OCR_MIN_SCORE", 0.6)
+    if min_score < 0 or min_score > 1:
+        raise RuntimeError("OCR_MIN_SCORE must be between 0 and 1")
+
+    return OcrConfig(
+        enabled=os.environ.get("OCR_ENABLED", "1") not in ("0", "false", "no"),
+        model_type=model_type,
+        version=_int("OCR_VERSION", 1),
+        batch_size=batch_size,
+        min_score=min_score,
+        max_chars=_int("OCR_MAX_CHARS", 4096),
+        interval=_int("OCR_INTERVAL", 60),
+    )
+
+
+def _duplicates_config() -> DuplicatesConfig:
+    """Build the near-duplicate section from env; raise on garbage."""
+
+    threshold = _float("DUPLICATE_THRESHOLD", 0.95)
+    if threshold <= 0 or threshold > 1:
+        raise RuntimeError("DUPLICATE_THRESHOLD must be between 0 and 1")
+
+    neighbors = _int("DUPLICATE_NEIGHBORS", 16)
+    if neighbors < 2 or neighbors > 256:
+        raise RuntimeError("DUPLICATE_NEIGHBORS must be between 2 and 256")
+
+    return DuplicatesConfig(
+        threshold=threshold,
+        neighbors=neighbors,
+        cache_ttl=_int("DUPLICATE_CACHE_TTL", 600),
     )
 
 
@@ -243,6 +311,8 @@ def load_config() -> Config:
         schema_model=schema_model,
         places=places,
         face=_face_config(),
+        ocr=_ocr_config(),
+        duplicates=_duplicates_config(),
         model_cache_dir=os.environ.get("MODEL_CACHE_DIR", "/app/models"),
         device=os.environ.get("DEVICE", "auto"),
         workers=workers,

@@ -8,9 +8,9 @@ from fastapi import FastAPI
 from qdrant_client import AsyncQdrantClient
 
 from config import config
-from index import Indexer, IndexQueue, Scanner
+from index import Indexer, IndexQueue, OcrWorker, Scanner
 from routes import routers
-from routes.context import embedding_model, face_model, schema_model, sentence_model, state
+from routes.context import embedding_model, face_model, ocr_model, schema_model, sentence_model, state
 from store import Store
 
 
@@ -31,6 +31,8 @@ async def lifespan(_app: FastAPI):
     await asyncio.to_thread(schema_model.load)
     await asyncio.to_thread(face_model.ensure_snapshot)
     await asyncio.to_thread(face_model.load)
+    if config.ocr.enabled:
+        await asyncio.to_thread(ocr_model.load)
 
     client = AsyncQdrantClient(url=config.qdrant_url)
     store = Store(
@@ -60,6 +62,10 @@ async def lifespan(_app: FastAPI):
         state.qdrant = "ok"
         state.ready = True
         tasks = [index_queue.run(indexer.handle_batch), asyncio.create_task(scanner.run())]
+
+        if config.ocr.enabled:
+            state.ocr = OcrWorker(ocr_model, store, index_queue)
+            tasks.append(asyncio.create_task(state.ocr.run()))
 
         yield
     finally:
