@@ -28,6 +28,8 @@ use OC\Files\Search\SearchComparison;
 use OC\Files\Search\SearchQuery;
 use OCA\Memories\ClustersBackend;
 use OCA\Memories\Exceptions;
+use OCA\Memories\Service\LockedFolder;
+use OCA\Memories\Service\Partners;
 use OCA\Memories\Settings\SystemConfig;
 use OCA\Memories\Util;
 use OCP\AppFramework\PublicShareController;
@@ -128,12 +130,21 @@ final class FsManager
         $uid = $user->getUID();
         $userFolder = $this->rootFolder->getUserFolder($uid);
 
+        $isTimeline = false;
         if (null === $paths) {
             /** @var string[] $paths List of paths to add to root */
-            if ($path = $this->getRequestFolder()) {
+            if ($this->request->getParam('locked')) {
+                $locked = \OCP\Server::get(LockedFolder::class);
+                if (!$locked->isUnlocked()) {
+                    throw Exceptions::Forbidden('Locked folder is locked');
+                }
+                $locked->ensureFolder();
+                $paths = [LockedFolder::path()];
+            } elseif ($path = $this->getRequestFolder()) {
                 $paths = [$path];
             } else {
                 $paths = $this->systemConfig->getTimelinePaths($uid);
+                $isTimeline = true;
             }
         }
 
@@ -155,6 +166,11 @@ final class FsManager
             }
         } catch (\Exception $e) {
             throw new \Exception("Folder not found: {$e->getMessage()}");
+        }
+
+        // Partners' shared timelines, unless hidden by this user
+        if ($isTimeline && $recursive) {
+            \OCP\Server::get(Partners::class)->addToRoot($root, $uid);
         }
 
         // Add shares or external stores inside the current folders

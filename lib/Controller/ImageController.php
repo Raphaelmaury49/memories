@@ -29,6 +29,7 @@ use OCA\Memories\Db\FsManager;
 use OCA\Memories\Db\TimelineQuery;
 use OCA\Memories\Exceptions;
 use OCA\Memories\Exif;
+use OCA\Memories\Service\People;
 use OCA\Memories\Service;
 use OCA\Memories\Service\Index;
 use OCA\Memories\Settings\SystemConfig;
@@ -282,6 +283,18 @@ final class ImageController extends ApiController
                         $backend = \OCA\Memories\ClustersBackend\Manager::get($type);
                         if ($backend->isEnabled()) {
                             $clist[$type] = $backend->getClusters($id);
+
+                            // Birthdates let the client show each person's age on this photo
+                            if (\in_array($type, People::BACKENDS, true)) {
+                                $bd = \OCP\Server::get(People::class)->birthdates($type, array_map(
+                                    static fn ($c) => (string) $c['cluster_id'],
+                                    $clist[$type],
+                                ));
+                                foreach ($clist[$type] as &$c) {
+                                    $c['birthdate'] = $bd[(string) $c['cluster_id']] ?? null;
+                                }
+                                unset($c);
+                            }
                         }
                     }
                     $info['clusters'] = $clist;

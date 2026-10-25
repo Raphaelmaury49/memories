@@ -73,19 +73,29 @@ final class ShareController extends ApiController
 
     /**
      * Share a node using an external link.
+     *
+     * @param bool $upload let link visitors add photos (folders only)
      */
     #[NoAdminRequired]
-    public function createNode(?int $id, ?string $path): Http\Response
+    public function createNode(?int $id, ?string $path, bool $upload = false): Http\Response
     {
-        return $this->util->guardEx(function () use ($id, $path) {
+        return $this->util->guardEx(function () use ($id, $path, $upload) {
             $file = $this->getNodeByIdOrPath($id, $path);
+
+            $perms = \OCP\Constants::PERMISSION_READ;
+            if ($upload) {
+                if (!$file instanceof \OCP\Files\Folder) {
+                    throw Exceptions::BadRequest('Only folders accept uploads');
+                }
+                $perms |= \OCP\Constants::PERMISSION_CREATE;
+            }
 
             $share = $this->shareManager->createShare(
                 $this->shareManager->newShare()
                     ->setNode($file)
                     ->setShareType(\OCP\Share\IShare::TYPE_LINK)
                     ->setSharedBy($this->util->getUID())
-                    ->setPermissions(\OCP\Constants::PERMISSION_READ),
+                    ->setPermissions($perms),
             );
 
             return new JSONResponse($this->makeShareResponse($share), Http::STATUS_OK);
@@ -152,6 +162,7 @@ final class ShareController extends ApiController
             'hasPassword' => $share->getPassword() ? true : false,
             'expiration' => $expiration,
             'editable' => (bool) ($share->getPermissions() & \OCP\Constants::PERMISSION_UPDATE),
+            'upload' => (bool) ($share->getPermissions() & \OCP\Constants::PERMISSION_CREATE),
         ];
     }
 }

@@ -26,6 +26,8 @@ namespace OCA\Memories\Controller;
 use OCA\Memories\AppInfo\Application;
 use OCA\Memories\ClustersBackend;
 use OCA\Memories\Db\TimelineQuery;
+use OCA\Memories\Exceptions;
+use OCA\Memories\Service\People;
 use OCA\Memories\Util;
 use OCP\AppFramework\ApiController;
 use OCP\AppFramework\Http;
@@ -44,6 +46,7 @@ final class DaysController extends ApiController
         IRequest $request,
         protected TimelineQuery $tq,
         protected Util $util,
+        protected People $people,
     ) {
         parent::__construct(Application::APPNAME, $request);
     }
@@ -116,6 +119,18 @@ final class DaysController extends ApiController
         // Other transforms not allowed for public shares
         if (!$this->util->isLoggedIn()) {
             return $transforms;
+        }
+
+        // Files showing every listed person
+        if ($together = (string) $this->request->getParam('together')) {
+            try {
+                [$backend, $ids] = $this->people->parseTogether($together);
+            } catch (\InvalidArgumentException $e) {
+                throw Exceptions::BadRequest($e->getMessage());
+            }
+            $transforms[] = function (IQueryBuilder &$query, bool $aggregate) use ($backend, $ids): void {
+                $this->people->transformTogether($query, $backend, $ids);
+            };
         }
 
         // Filter only favorites

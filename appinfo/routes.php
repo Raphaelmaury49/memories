@@ -84,6 +84,19 @@ return [
         ['name' => 'Lens#similar', 'url' => '/api/lens/similar/{fileid}', 'verb' => 'GET', 'requirements' => ['fileid' => '\d+']],
         ['name' => 'Lens#duplicates', 'url' => '/api/lens/duplicates', 'verb' => 'GET'],
 
+        ['name' => 'People#meta', 'url' => '/api/people/{backend}/{name}', 'verb' => 'GET'],
+        ['name' => 'People#setBirthdate', 'url' => '/api/people/{backend}/{name}/birthdate', 'verb' => 'PUT'],
+
+        ['name' => 'Locked#status', 'url' => '/api/locked', 'verb' => 'GET'],
+        ['name' => 'Locked#setPin', 'url' => '/api/locked/pin', 'verb' => 'PUT'],
+        ['name' => 'Locked#unlock', 'url' => '/api/locked/unlock', 'verb' => 'POST'],
+        ['name' => 'Locked#lock', 'url' => '/api/locked/lock', 'verb' => 'POST'],
+
+        ['name' => 'Partners#list', 'url' => '/api/partners', 'verb' => 'GET'],
+        ['name' => 'Partners#add', 'url' => '/api/partners', 'verb' => 'POST'],
+        ['name' => 'Partners#remove', 'url' => '/api/partners/{partner}', 'verb' => 'DELETE'],
+        ['name' => 'Partners#setInTimeline', 'url' => '/api/partners/{owner}/timeline', 'verb' => 'PUT'],
+
         ['name' => 'Share#links', 'url' => '/api/share/links', 'verb' => 'GET'],
         ['name' => 'Share#createNode', 'url' => '/api/share/node', 'verb' => 'POST'],
         ['name' => 'Share#deleteShare', 'url' => '/api/share/delete', 'verb' => 'POST'],
