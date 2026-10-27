@@ -93,8 +93,8 @@ async function save() {
   try {
     if (routeIs.Recognize) {
       // Recognize refuses a name that is already taken: offer to merge instead
-      const faces = await dav.getFaceList('recognize', { signal });
-      const target = faces.find((f) => f.user_id === utils.uid && String(f.name) === input.value);
+      // (resolved server-side: the people list only covers the timeline folders)
+      const target = await people.getMeta('recognize', input.value).catch(() => null);
       if (target) {
         const ok = await utils.confirmDestructive({
           title: t('memories', 'Merge faces'),
