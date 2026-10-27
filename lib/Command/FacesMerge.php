@@ -46,7 +46,7 @@ final class FacesMerge extends Command
             ->setName('memories:faces-merge')
             ->setDescription('Merge Recognize people that are the same person (split clusters)')
             ->addOption('user', 'u', InputOption::VALUE_REQUIRED, 'Only this user')
-            ->addOption('threshold', 't', InputOption::VALUE_REQUIRED, 'Max average face distance to merge', '0.35')
+            ->addOption('threshold', 't', InputOption::VALUE_REQUIRED, 'Max average face distance to merge', '0.45')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Only print what would be merged')
         ;
     }

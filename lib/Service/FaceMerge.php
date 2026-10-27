@@ -37,8 +37,8 @@ use OCP\IDBConnection;
  */
 final class FaceMerge
 {
-    /** Default linkage cutoff for suggestions (face-api descriptors, same person < ~0.45). */
-    public const float DEFAULT_THRESHOLD = 0.45;
+    /** Default average-linkage cutoff for suggestions (face-api descriptors, pairwise same person < 0.6). */
+    public const float DEFAULT_THRESHOLD = 0.55;
 
     /** Faces sampled per cluster for the linkage. */
     private const int SAMPLE = 40;
