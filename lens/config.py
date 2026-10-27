@@ -313,7 +313,7 @@ def load_config() -> Config:
         face=_face_config(),
         ocr=_ocr_config(),
         duplicates=_duplicates_config(),
-        model_cache_dir=os.environ.get("MODEL_CACHE_DIR", "/app/models"),
+        model_cache_dir=os.environ.get("MODEL_CACHE_DIR", "/models-cache"),
         device=os.environ.get("DEVICE", "auto"),
         workers=workers,
         queue_max=_int("QUEUE_MAX", 100000),

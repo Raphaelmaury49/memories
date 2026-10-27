@@ -34,7 +34,7 @@ async def lifespan(_app: FastAPI):
     if config.ocr.enabled:
         await asyncio.to_thread(ocr_model.load)
 
-    client = AsyncQdrantClient(url=config.qdrant_url)
+    client = AsyncQdrantClient(url=config.qdrant_url, timeout=60)
     store = Store(
         client=client,
         embedding_dim=embedding_model.dim(),

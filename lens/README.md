@@ -39,9 +39,9 @@ services:
     ports:
       - "127.0.0.1:47789:47789"
     volumes:
-      - lens-models:/app/models
+      - lens-models:/models-cache
     environment:
-      MODEL_CACHE_DIR: "/app/models"
+      MODEL_CACHE_DIR: "/models-cache"
       NEXTCLOUD_URL: "https://cloud.example.com"
       NC_USER: "lens"
       NC_TOKEN: "token-from-step-1"

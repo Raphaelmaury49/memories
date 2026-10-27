@@ -33,17 +33,22 @@ class OcrModel:
     def load(self) -> None:
         """Build the engine and run it once so every model is downloaded and verified."""
 
-        from rapidocr import RapidOCR  # noqa: PLC0415
+        from rapidocr import ModelType, OCRVersion, RapidOCR  # noqa: PLC0415
 
         os.makedirs(self.model_dir(), exist_ok=True)
+
+        # rapidocr only accepts enum members for model_type / ocr_version.
+        model_type = ModelType(config.ocr.model_type)
 
         params = {
             "Global.model_root_dir": self.model_dir(),
             "Global.log_level": "warning",
             "Global.max_side_len": MAX_SIDE,
             "Global.text_score": config.ocr.min_score,
-            "Det.model_type": config.ocr.model_type,
-            "Rec.model_type": config.ocr.model_type,
+            "Det.model_type": model_type,
+            "Det.ocr_version": OCRVersion.PPOCRV6,
+            "Rec.model_type": model_type,
+            "Rec.ocr_version": OCRVersion.PPOCRV6,
         }
 
         if config.torch_num_threads:
