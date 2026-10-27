@@ -41,6 +41,7 @@ import { useRouteIs } from '@services/route-is';
 import { isAbortError, useAbort } from '@services/utils/abort-vue';
 import * as utils from '@services/utils/common';
 import * as dav from '@services/dav';
+import * as people from '@services/people';
 
 defineOptions({
   name: 'FaceEditModal',
@@ -91,7 +92,23 @@ async function save() {
 
   try {
     if (routeIs.Recognize) {
-      await dav.recognizeRenameFace(user.value, name.value, input.value, { signal });
+      // Recognize refuses a name that is already taken: offer to merge instead
+      const faces = await dav.getFaceList('recognize', { signal });
+      const target = faces.find((f) => f.user_id === utils.uid && String(f.name) === input.value);
+      if (target) {
+        const ok = await utils.confirmDestructive({
+          title: t('memories', 'Merge faces'),
+          message: t('memories', '{name} already exists. Merge this person into {name}?', { name: input.value }),
+          confirm: t('memories', 'Merge'),
+          cancel: t('memories', 'Cancel'),
+        });
+        if (!ok) return;
+
+        const meta = await people.getMeta('recognize', name.value);
+        await people.mergePeople(Number(meta.cluster_id), Number(target.cluster_id));
+      } else {
+        await dav.recognizeRenameFace(user.value, name.value, input.value, { signal });
+      }
     } else {
       await dav.faceRecognitionRenamePerson(name.value, input.value, { signal });
     }

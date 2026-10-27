@@ -36,6 +36,8 @@
     "Select all but the best copy of each group" : "Sélectionner tout sauf la meilleure copie de chaque groupe",
     "Select duplicates" : "Sélectionner les doublons",
     "Set birthday" : "Définir l'anniversaire",
+    "{name} already exists. Merge this person into {name}?" : "{name} existe déjà. Fusionner cette personne avec {name} ?",
+    "Merge" : "Fusionner",
     "Merge suggestions" : "Suggestions de fusion",
     "Same person?" : "Même personne ?",
     "Looking for people to merge …" : "Recherche des personnes à fusionner …",
