@@ -42,3 +42,23 @@ export function parseTogetherIds(ids: unknown): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
+
+export type IMergePair = { a: number; b: number; distance: number };
+
+/** Recognize people that probably are the same person, closest first. */
+export async function getMergeSuggestions(limit = 20): Promise<{ threshold: number; pairs: IMergePair[] }> {
+  const res = await axios.get<{ threshold: number; pairs: IMergePair[] }>(API.PEOPLE_MERGE_SUGGESTIONS(), {
+    params: { limit },
+  });
+  return res.data;
+}
+
+/** Move every face of one Recognize person into another. */
+export async function mergePeople(from: number, to: number): Promise<void> {
+  await axios.post(API.PEOPLE_MERGE(), { from, to });
+}
+
+/** Never suggest this pair again. */
+export async function dismissMerge(a: number, b: number): Promise<void> {
+  await axios.post(API.PEOPLE_MERGE_DISMISS(), { a, b });
+}

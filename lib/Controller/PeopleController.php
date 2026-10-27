@@ -25,7 +25,9 @@ namespace OCA\Memories\Controller;
 
 use OCA\Memories\AppInfo\Application;
 use OCA\Memories\Exceptions;
+use OCA\Memories\Service\FaceMerge;
 use OCA\Memories\Service\People;
+use OCA\Memories\Settings\SystemConfig;
 use OCA\Memories\Util;
 use OCP\AppFramework\ApiController;
 use OCP\AppFramework\Http;
@@ -38,6 +40,8 @@ final class PeopleController extends ApiController
     public function __construct(
         IRequest $request,
         protected People $people,
+        protected FaceMerge $faceMerge,
+        protected SystemConfig $systemConfig,
         protected Util $util,
     ) {
         parent::__construct(Application::APPNAME, $request);
@@ -96,5 +100,61 @@ final class PeopleController extends ApiController
         }
 
         return $id;
+    }
+
+    /**
+     * Recognize people of the current user that look like the same person.
+     */
+    #[NoAdminRequired]
+    public function mergeSuggestions(int $limit = 20): Http\Response
+    {
+        return $this->util->guardEx(function () use ($limit) {
+            $this->requireRecognize();
+
+            return new JSONResponse([
+                'threshold' => $this->faceMerge->threshold(),
+                'pairs' => $this->faceMerge->suggestions($this->util->getUID(), null, max(1, min($limit, 100))),
+            ]);
+        });
+    }
+
+    /**
+     * Move every face of one Recognize person into another.
+     */
+    #[NoAdminRequired]
+    public function merge(int $from, int $to): Http\Response
+    {
+        return $this->util->guardEx(function () use ($from, $to) {
+            $this->requireRecognize();
+
+            try {
+                $this->faceMerge->merge($this->util->getUID(), $from, $to);
+            } catch (\InvalidArgumentException $e) {
+                throw Exceptions::BadRequest($e->getMessage());
+            }
+
+            return new JSONResponse(['cluster_id' => $to]);
+        });
+    }
+
+    /**
+     * Hide a suggestion for good: the two people are different.
+     */
+    #[NoAdminRequired]
+    public function mergeDismiss(int $a, int $b): Http\Response
+    {
+        return $this->util->guardEx(function () use ($a, $b) {
+            $this->requireRecognize();
+            $this->faceMerge->dismiss($this->util->getUID(), $a, $b);
+
+            return new JSONResponse([]);
+        });
+    }
+
+    private function requireRecognize(): void
+    {
+        if (!$this->systemConfig->recognizeIsEnabled()) {
+            throw Exceptions::NotEnabled('Recognize');
+        }
     }
 }

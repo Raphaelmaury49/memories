@@ -283,6 +283,18 @@ export class API {
     return gen(`${BASE}/people/{backend}/{name}/birthdate`, { backend, name });
   }
 
+  static PEOPLE_MERGE_SUGGESTIONS() {
+    return gen(`${BASE}/people-merge/suggestions`);
+  }
+
+  static PEOPLE_MERGE() {
+    return gen(`${BASE}/people-merge`);
+  }
+
+  static PEOPLE_MERGE_DISMISS() {
+    return gen(`${BASE}/people-merge/dismiss`);
+  }
+
   static LOCKED(action: '' | 'pin' | 'unlock' | 'lock' = '') {
     return gen(`${BASE}/locked${action ? '/' + action : ''}`);
   }

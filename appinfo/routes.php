@@ -84,6 +84,9 @@ return [
         ['name' => 'Lens#similar', 'url' => '/api/lens/similar/{fileid}', 'verb' => 'GET', 'requirements' => ['fileid' => '\d+']],
         ['name' => 'Lens#duplicates', 'url' => '/api/lens/duplicates', 'verb' => 'GET'],
 
+        ['name' => 'People#mergeSuggestions', 'url' => '/api/people-merge/suggestions', 'verb' => 'GET'],
+        ['name' => 'People#merge', 'url' => '/api/people-merge', 'verb' => 'POST'],
+        ['name' => 'People#mergeDismiss', 'url' => '/api/people-merge/dismiss', 'verb' => 'POST'],
         ['name' => 'People#meta', 'url' => '/api/people/{backend}/{name}', 'verb' => 'GET'],
         ['name' => 'People#setBirthdate', 'url' => '/api/people/{backend}/{name}/birthdate', 'verb' => 'PUT'],
 

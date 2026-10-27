@@ -22,6 +22,14 @@
             {{ t('memories', 'Unassigned faces') }}
             <template #icon> <UnassignedIcon :size="20" /> </template>
           </NcActionButton>
+          <NcActionButton
+            :aria-label="t('memories', 'Merge suggestions')"
+            @click="suggestModal?.open()"
+            close-after-click
+          >
+            {{ t('memories', 'Merge suggestions') }}
+            <template #icon> <MergeIcon :size="20" /> </template>
+          </NcActionButton>
         </template>
 
         <!-- real cluster -->
@@ -30,7 +38,11 @@
             {{ t('memories', 'Rename person') }}
             <template #icon> <EditIcon :size="20" /> </template>
           </NcActionButton>
-          <NcActionButton :aria-label="t('memories', 'Photos with another person')" @click="pickTogether" close-after-click>
+          <NcActionButton
+            :aria-label="t('memories', 'Photos with another person')"
+            @click="pickTogether"
+            close-after-click
+          >
             {{ t('memories', 'Photos with another person') }}
             <template #icon> <TogetherIcon :size="20" /> </template>
           </NcActionButton>
@@ -65,6 +77,7 @@
     <FaceDeleteModal ref="deleteModal" />
     <FaceMergeModal ref="mergeModal" />
     <PersonPickModal ref="pickModal" @select="openTogether" />
+    <FaceMergeSuggestModal ref="suggestModal" />
   </div>
 </template>
 
@@ -80,6 +93,7 @@ import FaceEditModal from '@components/modal/FaceEditModal.vue';
 import FaceDeleteModal from '@components/modal/FaceDeleteModal.vue';
 import FaceMergeModal from '@components/modal/FaceMergeModal.vue';
 import PersonPickModal from '@components/modal/PersonPickModal.vue';
+import FaceMergeSuggestModal from '@components/modal/FaceMergeSuggestModal.vue';
 
 import { useRouteIs } from '@services/route-is';
 import { routes } from '@services/router';
@@ -110,6 +124,7 @@ const editModal = useTemplateRef<InstanceType<typeof FaceEditModal>>('editModal'
 const deleteModal = useTemplateRef<InstanceType<typeof FaceDeleteModal>>('deleteModal');
 const mergeModal = useTemplateRef<InstanceType<typeof FaceMergeModal>>('mergeModal');
 const pickModal = useTemplateRef<InstanceType<typeof PersonPickModal>>('pickModal');
+const suggestModal = useTemplateRef<InstanceType<typeof FaceMergeSuggestModal>>('suggestModal');
 
 const name = computed(() => {
   return route.params.name?.toString() || '';
